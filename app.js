@@ -253,15 +253,24 @@ function updateChips() {
 }
 
 function updateSprite(url) {
+  if (!spriteImage && !spritePlaceholder) {
+    return;
+  }
+
   const value = (url || '').trim();
-  if (value) {
-    spriteImage.src = value;
-    spriteImage.hidden = false;
-    spritePlaceholder.hidden = true;
-  } else {
-    spriteImage.removeAttribute('src');
-    spriteImage.hidden = true;
-    spritePlaceholder.hidden = false;
+  if (spriteImage) {
+    if (value) {
+      spriteImage.src = value;
+      spriteImage.hidden = false;
+    } else {
+      spriteImage.removeAttribute('src');
+      spriteImage.hidden = true;
+    }
+  }
+
+  if (spritePlaceholder) {
+    const shouldShowPlaceholder = !value || !spriteImage || spriteImage.hidden;
+    spritePlaceholder.hidden = !shouldShowPlaceholder;
   }
 }
 
@@ -365,7 +374,7 @@ function collectFormData() {
   });
   data.Pre_Evs = fieldPreEvs.value;
   data.Ivs = fieldIvs.value;
-  data.Picture = fieldPicture.value.trim();
+  data.Picture = fieldPicture ? fieldPicture.value.trim() : '';
   data.Is_Shiny = shinyToggle ? shinyToggle.checked : false;
   data.Is_Boss = bossToggle ? bossToggle.checked : false;
   return data;
@@ -505,10 +514,14 @@ function initPicturePreview() {
     fieldPicture.addEventListener('input', refresh);
     fieldPicture.addEventListener('change', refresh);
   }
-  spriteImage.addEventListener('error', () => {
-    spriteImage.hidden = true;
-    spritePlaceholder.hidden = false;
-  });
+  if (spriteImage) {
+    spriteImage.addEventListener('error', () => {
+      spriteImage.hidden = true;
+      if (spritePlaceholder) {
+        spritePlaceholder.hidden = false;
+      }
+    });
+  }
 }
 
 function loadReferenceLists() {
