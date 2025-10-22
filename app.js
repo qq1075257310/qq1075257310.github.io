@@ -1,9 +1,14 @@
 const DATA_URL = 'test.json';
+const BALL_LIST_URL = 'ball_list.txt';
+const ITEM_LIST_URL = 'itemlist.txt';
+const NATURE_LIST_URL = 'NatureList.txt';
+
 const fieldNames = [
   'No',
   'Dex_No',
   'CN_Name',
   'ENG_Name',
+  'Web_Name',
   'Gender_Type',
   'LV_Min',
   'Boss_LV_Min',
@@ -17,13 +22,25 @@ const fieldNames = [
   'Pre_Evs',
   'Pre_Nature',
   'Pre_Gender',
-  'Pre_Ball'
+  'Pre_Ball',
+  'Held_Item',
+  'Picture',
+  'Ivs'
 ];
+
+const STAT_KEYS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
+const DEFAULT_EV_SPREAD = [0, 0, 0, 0, 0, 0];
+const DEFAULT_IV_SPREAD = [31, 31, 31, 31, 31, 31];
 
 const state = {
   pokemonList: [],
   current: null,
-  box: []
+  box: [],
+  lists: {
+    balls: [],
+    items: [],
+    natures: []
+  }
 };
 
 const form = document.getElementById('pokemonForm');
@@ -39,6 +56,23 @@ const selectorSearch = document.getElementById('selectorSearch');
 const openSelectorBtn = document.getElementById('openSelector');
 const saveToBoxBtn = document.getElementById('saveToBox');
 const boxCardTemplate = document.getElementById('boxCardTemplate');
+const fieldPreEvs = document.getElementById('fieldPreEvs');
+const fieldIvs = document.getElementById('fieldIvs');
+const fieldPicture = document.getElementById('fieldPicture');
+const shinyToggle = document.getElementById('fieldShiny');
+const bossToggle = document.getElementById('fieldBoss');
+const chipShiny = document.querySelector('[data-chip="shiny"]');
+const chipBoss = document.querySelector('[data-chip="boss"]');
+const ballSelect = document.getElementById('fieldPreBall');
+const itemSelect = document.getElementById('fieldHeldItem');
+const natureSelect = document.getElementById('fieldPreNature');
+const spriteImage = document.getElementById('spriteImage');
+const spritePlaceholder = document.getElementById('spritePlaceholder');
+const evTotal = document.getElementById('evTotal');
+const evWarning = document.getElementById('evWarning');
+
+const evInputs = STAT_KEYS.map((stat) => form.elements.namedItem(`ev_${stat}`));
+const ivInputs = STAT_KEYS.map((stat) => form.elements.namedItem(`iv_${stat}`));
 
 function updateDate() {
   const now = new Date();
@@ -52,19 +86,183 @@ function updateDate() {
   statusDate.textContent = formatter.format(now);
 }
 
+function fetchJson(url) {
+  return fetch(url).then((res) => {
+    if (!res.ok) {
+      throw new Error(`无法读取 ${url}`);
+    }
+    return res.json();
+  });
+}
+
+function fetchText(url) {
+  return fetch(url).then((res) => {
+    if (!res.ok) {
+      throw new Error(`无法读取 ${url}`);
+    }
+    return res.text();
+  });
+}
+
 function fetchData() {
-  return fetch(DATA_URL)
-    .then((res) => {
-      if (!res.ok) {
-        throw new Error('无法读取 test.json');
-      }
-      return res.json();
+  return fetchJson(DATA_URL).then((list) =>
+    list
+      .map((entry) => ({ ...entry }))
+      .sort((a, b) => Number(a.No) - Number(b.No))
+  );
+}
+
+function parseTableList(text, { skipHeader = true } = {}) {
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .slice(skipHeader ? 1 : 0)
+    .map((line) => {
+      const [id, ...rest] = line.split(/\s+/);
+      return {
+        id: id || '',
+        name: rest.join(' ') || id || ''
+      };
     })
-    .then((list) => {
-      return list
-        .map((entry) => ({ ...entry }))
-        .sort((a, b) => Number(a.No) - Number(b.No));
-    });
+    .filter((item) => item.name);
+}
+
+function parseNatureList(text) {
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .slice(1)
+    .map((line) => {
+      const [name] = line.split(/\s+/);
+      return { name };
+    })
+    .filter((item) => item.name);
+}
+
+function populateSelect(select, items, placeholder) {
+  if (!select) return;
+  const previousValue = select.value;
+  select.innerHTML = '';
+  const fragment = document.createDocumentFragment();
+  const placeholderOption = document.createElement('option');
+  placeholderOption.value = '';
+  placeholderOption.textContent = placeholder;
+  fragment.appendChild(placeholderOption);
+  items.forEach((item) => {
+    const option = document.createElement('option');
+    option.value = item.name;
+    option.textContent = item.name;
+    fragment.appendChild(option);
+  });
+  select.appendChild(fragment);
+  if (previousValue) {
+    ensureOption(select, previousValue);
+  }
+}
+
+function ensureOption(select, value) {
+  if (!select || !value) return;
+  const exists = Array.from(select.options).some((option) => option.value === value);
+  if (!exists) {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = value;
+    option.dataset.dynamic = 'true';
+    select.appendChild(option);
+  }
+  select.value = value;
+}
+
+function parseSpread(spread, fallback) {
+  if (typeof spread !== 'string' || !spread.trim()) {
+    return [...fallback];
+  }
+  const parts = spread.split(/[-,/]/);
+  return STAT_KEYS.map((_, index) => {
+    const raw = Number(parts[index]);
+    return Number.isFinite(raw) ? raw : fallback[index];
+  });
+}
+
+function applyEvSpread(spread) {
+  const values = parseSpread(spread, DEFAULT_EV_SPREAD);
+  evInputs.forEach((input, index) => {
+    if (!input) return;
+    input.value = values[index];
+  });
+  const fallbackInput = evInputs[evInputs.length - 1];
+  updateEvState(fallbackInput);
+}
+
+function applyIvSpread(spread) {
+  const values = parseSpread(spread, DEFAULT_IV_SPREAD);
+  ivInputs.forEach((input, index) => {
+    if (!input) return;
+    input.value = values[index];
+  });
+  updateIvField();
+}
+
+function composeSpread(inputs) {
+  return inputs.map((input) => Number(input?.value || 0)).join('-');
+}
+
+function updateEvState(changedInput) {
+  let total = 0;
+  evInputs.forEach((input) => {
+    if (!input) return;
+    let value = Number.parseInt(input.value, 10);
+    if (!Number.isFinite(value) || value < 0) value = 0;
+    if (value > 252) value = 252;
+    input.value = value;
+    total += value;
+  });
+
+  if (total > 510 && changedInput) {
+    const others = total - Number(changedInput.value);
+    const allowed = Math.max(0, 510 - others);
+    changedInput.value = allowed;
+    total = others + allowed;
+  }
+
+  evTotal.textContent = total;
+  evWarning.hidden = total < 510;
+  fieldPreEvs.value = composeSpread(evInputs);
+}
+
+function updateIvField() {
+  ivInputs.forEach((input) => {
+    if (!input) return;
+    let value = Number.parseInt(input.value, 10);
+    if (!Number.isFinite(value) || value < 0) value = 0;
+    if (value > 31) value = 31;
+    input.value = value;
+  });
+  fieldIvs.value = composeSpread(ivInputs);
+}
+
+function updateChips() {
+  if (chipShiny && shinyToggle) {
+    chipShiny.hidden = !shinyToggle.checked;
+  }
+  if (chipBoss && bossToggle) {
+    chipBoss.hidden = !bossToggle.checked;
+  }
+}
+
+function updateSprite(url) {
+  const value = (url || '').trim();
+  if (value) {
+    spriteImage.src = value;
+    spriteImage.hidden = false;
+    spritePlaceholder.hidden = true;
+  } else {
+    spriteImage.removeAttribute('src');
+    spriteImage.hidden = true;
+    spritePlaceholder.hidden = false;
+  }
 }
 
 function fillForm(pokemon) {
@@ -74,13 +272,42 @@ function fillForm(pokemon) {
     const value = pokemon?.[name] ?? '';
     field.value = value;
   });
+
+  applyEvSpread(fieldPreEvs.value);
+  applyIvSpread(fieldIvs.value);
+
+  if (shinyToggle) {
+    shinyToggle.checked = Boolean(pokemon?.Is_Shiny);
+  }
+  if (bossToggle) {
+    bossToggle.checked = Boolean(pokemon?.Is_Boss);
+  }
+  updateChips();
+
+  ensureOption(ballSelect, pokemon?.Pre_Ball ?? '');
+  ensureOption(itemSelect, pokemon?.Held_Item ?? '');
+  ensureOption(natureSelect, pokemon?.Pre_Nature ?? '');
+
+  updateSprite(pokemon?.Picture);
 }
 
 function setCurrent(pokemon) {
-  state.current = pokemon;
-  fillForm(pokemon);
-  currentNumber.textContent = pokemon?.No ?? '--';
-  const displayName = pokemon?.CN_Name || pokemon?.ENG_Name || '未命名精灵';
+  const enriched = {
+    ...pokemon,
+    Held_Item: pokemon?.Held_Item ?? '',
+    Picture: pokemon?.Picture ?? '',
+    Ivs: pokemon?.Ivs ?? DEFAULT_IV_SPREAD.join('-'),
+    Pre_Evs: pokemon?.Pre_Evs ?? DEFAULT_EV_SPREAD.join('-'),
+    Is_Shiny: Boolean(pokemon?.Is_Shiny),
+    Is_Boss: Boolean(pokemon?.Is_Boss)
+  };
+
+  state.current = enriched;
+  fillForm(enriched);
+
+  const paddedNo = enriched?.No ? enriched.No.toString().padStart(3, '0') : '--';
+  currentNumber.textContent = paddedNo;
+  const displayName = enriched?.CN_Name || enriched?.ENG_Name || enriched?.Web_Name || '未命名精灵';
   currentName.textContent = displayName;
 }
 
@@ -102,9 +329,10 @@ function renderSelectorList(list) {
     const item = document.createElement('li');
     item.tabIndex = 0;
     item.dataset.no = pokemon.No;
+    const padded = pokemon.No ? pokemon.No.toString().padStart(3, '0') : '--';
     item.innerHTML = `
       <div>
-        <p class="pokemon-number">#${pokemon.No.padStart(3, '0')}</p>
+        <p class="pokemon-number">#${padded}</p>
         <p class="pokemon-name">${pokemon.CN_Name || pokemon.ENG_Name || '未知精灵'}</p>
       </div>
       <span class="pokemon-tag">Lv ${pokemon.LV_Min || '--'}</span>
@@ -122,20 +350,25 @@ function renderSelectorList(list) {
 }
 
 function handleSelectPokemon(no) {
-  const pokemon = state.pokemonList.find((item) => item.No === no);
+  const pokemon = state.pokemonList.find((item) => item.No?.toString() === no?.toString());
   if (!pokemon) return;
   setCurrent({ ...pokemon });
   closeModal();
 }
 
 function collectFormData() {
-  const formData = {};
+  const formData = new FormData(form);
+  const data = {};
   fieldNames.forEach((name) => {
-    const field = form.elements.namedItem(name);
-    if (!field) return;
-    formData[name] = field.value.trim();
+    const value = formData.get(name);
+    data[name] = typeof value === 'string' ? value.trim() : '';
   });
-  return formData;
+  data.Pre_Evs = fieldPreEvs.value;
+  data.Ivs = fieldIvs.value;
+  data.Picture = fieldPicture.value.trim();
+  data.Is_Shiny = shinyToggle ? shinyToggle.checked : false;
+  data.Is_Boss = bossToggle ? bossToggle.checked : false;
+  return data;
 }
 
 function renderBox() {
@@ -162,8 +395,24 @@ function renderBox() {
     const fields = card.querySelectorAll('[data-field]');
     fields.forEach((element) => {
       const key = element.dataset.field;
-      element.textContent = pokemon[key] || '--';
+      let value = pokemon[key];
+      if (key === 'No') {
+        value = value ? value.toString().padStart(3, '0') : '--';
+      } else if (key === 'ENG_Name') {
+        element.textContent = value || '';
+        element.hidden = !value;
+        return;
+      } else if (!value && value !== 0) {
+        value = '--';
+      }
+      element.textContent = value;
     });
+
+    const shinyChip = card.querySelector('[data-tag="shiny"]');
+    const bossChip = card.querySelector('[data-tag="boss"]');
+    if (shinyChip) shinyChip.hidden = !pokemon.Is_Shiny;
+    if (bossChip) bossChip.hidden = !pokemon.Is_Boss;
+
     card.dataset.no = pokemon.No;
     const editBtn = card.querySelector('[data-action="edit"]');
     const deleteBtn = card.querySelector('[data-action="delete"]');
@@ -172,7 +421,7 @@ function renderBox() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
     deleteBtn.addEventListener('click', () => {
-      state.box = state.box.filter((item) => item.No !== pokemon.No || item !== pokemon);
+      state.box = state.box.filter((item) => item !== pokemon);
       renderBox();
     });
     fragment.appendChild(card);
@@ -201,8 +450,9 @@ function handleSearch(event) {
     return;
   }
   const results = state.pokemonList.filter((pokemon) => {
+    const no = pokemon.No ? pokemon.No.toString().toLowerCase() : '';
     return (
-      pokemon.No.toLowerCase().includes(value) ||
+      no.includes(value) ||
       (pokemon.CN_Name && pokemon.CN_Name.toLowerCase().includes(value)) ||
       (pokemon.ENG_Name && pokemon.ENG_Name.toLowerCase().includes(value))
     );
@@ -230,12 +480,67 @@ function initModalClose() {
   });
 }
 
+function initStatHandlers() {
+  evInputs.forEach((input) => {
+    if (!input) return;
+    input.addEventListener('input', () => updateEvState(input));
+    input.addEventListener('blur', () => updateEvState());
+  });
+  ivInputs.forEach((input) => {
+    if (!input) return;
+    input.addEventListener('input', () => {
+      updateIvField();
+    });
+  });
+}
+
+function initToggles() {
+  shinyToggle?.addEventListener('change', updateChips);
+  bossToggle?.addEventListener('change', updateChips);
+}
+
+function initPicturePreview() {
+  if (fieldPicture) {
+    const refresh = () => updateSprite(fieldPicture.value);
+    fieldPicture.addEventListener('input', refresh);
+    fieldPicture.addEventListener('change', refresh);
+  }
+  spriteImage.addEventListener('error', () => {
+    spriteImage.hidden = true;
+    spritePlaceholder.hidden = false;
+  });
+}
+
+function loadReferenceLists() {
+  return Promise.all([
+    fetchText(BALL_LIST_URL).then((text) => {
+      const list = parseTableList(text);
+      state.lists.balls = list;
+      populateSelect(ballSelect, list, '选择精灵球');
+    }),
+    fetchText(ITEM_LIST_URL).then((text) => {
+      const list = parseTableList(text);
+      state.lists.items = list;
+      populateSelect(itemSelect, list, '选择道具');
+    }),
+    fetchText(NATURE_LIST_URL).then((text) => {
+      const list = parseNatureList(text);
+      state.lists.natures = list;
+      populateSelect(natureSelect, list, '选择性格');
+    })
+  ]);
+}
+
 function main() {
   updateDate();
   initModalClose();
+  initStatHandlers();
+  initToggles();
+  initPicturePreview();
   renderBox();
-  fetchData()
-    .then((list) => {
+
+  Promise.all([loadReferenceLists(), fetchData()])
+    .then(([, list]) => {
       state.pokemonList = list;
       if (list.length > 0) {
         const defaultPokemon = list.find((pokemon) => pokemon.No === '1') || list[0];
