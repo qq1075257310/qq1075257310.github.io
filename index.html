@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>精灵数值设定面板</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="top-bar">
+      <div class="branding">
+        <div class="logo-badge">PO</div>
+        <div>
+          <h1>精灵数值设定</h1>
+          <p class="subtitle">Pokemon Order Lab</p>
+        </div>
+      </div>
+      <div class="status-panel">
+        <div class="status-indicator">
+          <span class="dot"></span>
+          <span>同步待定</span>
+        </div>
+        <div class="status-date" id="statusDate"></div>
+      </div>
+    </header>
+
+    <main class="content">
+      <section class="editor" aria-labelledby="editorTitle">
+        <div class="editor-header">
+          <div>
+            <p class="editor-kicker">当前编辑</p>
+            <h2 id="editorTitle">#<span id="currentNumber">--</span> <span id="currentName">请选择精灵</span></h2>
+          </div>
+          <div class="editor-actions">
+            <button class="btn secondary" id="openSelector" type="button">切换精灵</button>
+            <button class="btn primary" id="saveToBox" type="button">保存到箱子</button>
+          </div>
+        </div>
+
+        <form class="editor-form" id="pokemonForm">
+          <div class="form-row">
+            <label for="fieldNo">编号</label>
+            <input id="fieldNo" name="No" type="text" readonly>
+          </div>
+          <div class="form-row">
+            <label for="fieldDex">全国图鉴</label>
+            <input id="fieldDex" name="Dex_No" type="text">
+          </div>
+          <div class="form-row">
+            <label for="fieldCN">中文名</label>
+            <input id="fieldCN" name="CN_Name" type="text">
+          </div>
+          <div class="form-row">
+            <label for="fieldENG">英文名</label>
+            <input id="fieldENG" name="ENG_Name" type="text">
+          </div>
+          <div class="form-row">
+            <label for="fieldGender">性别设定</label>
+            <input id="fieldGender" name="Gender_Type" type="text">
+          </div>
+          <div class="form-row">
+            <label for="fieldLv">基础等级</label>
+            <input id="fieldLv" name="LV_Min" type="text">
+          </div>
+          <div class="form-row">
+            <label for="fieldBossLv">Boss等级</label>
+            <input id="fieldBossLv" name="Boss_LV_Min" type="text">
+          </div>
+          <div class="form-row full">
+            <label for="fieldMoveLv">升级招式</label>
+            <textarea id="fieldMoveLv" name="Move_Lv" rows="3"></textarea>
+          </div>
+          <div class="form-row full">
+            <label for="fieldMoveTm">招式教学机</label>
+            <textarea id="fieldMoveTm" name="Move_TM" rows="3"></textarea>
+          </div>
+          <div class="form-row full">
+            <label for="fieldMoveBoss">Boss招式</label>
+            <input id="fieldMoveBoss" name="Move_Boss" type="text">
+          </div>
+          <div class="form-row">
+            <label for="fieldPreMove1">继承招式 1</label>
+            <input id="fieldPreMove1" name="Pre_Move1" type="text">
+          </div>
+          <div class="form-row">
+            <label for="fieldPreMove2">继承招式 2</label>
+            <input id="fieldPreMove2" name="Pre_Move2" type="text">
+          </div>
+          <div class="form-row">
+            <label for="fieldPreMove3">继承招式 3</label>
+            <input id="fieldPreMove3" name="Pre_Move3" type="text">
+          </div>
+          <div class="form-row">
+            <label for="fieldPreMove4">继承招式 4</label>
+            <input id="fieldPreMove4" name="Pre_Move4" type="text">
+          </div>
+          <div class="form-row">
+            <label for="fieldPreEvs">推荐努力值</label>
+            <input id="fieldPreEvs" name="Pre_Evs" type="text">
+          </div>
+          <div class="form-row">
+            <label for="fieldPreNature">推荐性格</label>
+            <input id="fieldPreNature" name="Pre_Nature" type="text">
+          </div>
+          <div class="form-row">
+            <label for="fieldPreGender">性别偏好</label>
+            <input id="fieldPreGender" name="Pre_Gender" type="text">
+          </div>
+          <div class="form-row">
+            <label for="fieldPreBall">精灵球</label>
+            <input id="fieldPreBall" name="Pre_Ball" type="text">
+          </div>
+        </form>
+      </section>
+
+      <section class="box" aria-labelledby="boxTitle">
+        <div class="box-header">
+          <div>
+            <p class="box-kicker">箱子</p>
+            <h3 id="boxTitle">储存的精灵</h3>
+          </div>
+          <div class="box-sorting">
+            <label for="boxOrder">排序</label>
+            <select id="boxOrder">
+              <option value="asc">编号升序</option>
+              <option value="desc">编号降序</option>
+              <option value="name">名称</option>
+            </select>
+          </div>
+        </div>
+        <div class="box-grid" id="boxGrid" aria-live="polite"></div>
+        <p class="box-empty" id="boxEmpty">暂无储存的精灵，点击上方的保存按钮加入箱子。</p>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal" id="selectorModal" aria-hidden="true" role="dialog" aria-labelledby="selectorTitle">
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-content">
+      <header class="modal-header">
+        <div>
+          <p class="modal-kicker">选择精灵</p>
+          <h2 id="selectorTitle">切换精灵编号</h2>
+        </div>
+        <button class="modal-close" type="button" data-close aria-label="关闭">
+          <span>&times;</span>
+        </button>
+      </header>
+      <div class="modal-search">
+        <input id="selectorSearch" type="search" placeholder="搜索编号或名称" autocomplete="off">
+        <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 2a8 8 0 015.291 13.708l4 4a1 1 0 01-1.415 1.415l-4-4A8 8 0 1110 2zm0 2a6 6 0 100 12 6 6 0 000-12z" fill="currentColor" /></svg>
+      </div>
+      <ul class="modal-list" id="selectorList" role="listbox"></ul>
+    </div>
+  </div>
+
+  <template id="boxCardTemplate">
+    <article class="box-card">
+      <header class="card-header">
+        <div>
+          <p class="card-number">#<span data-field="No"></span></p>
+          <h4 class="card-name" data-field="CN_Name"></h4>
+        </div>
+        <button class="card-edit" type="button" data-action="edit">编辑</button>
+      </header>
+      <dl class="card-body">
+        <div class="card-row">
+          <dt>等级</dt>
+          <dd data-field="LV_Min"></dd>
+        </div>
+        <div class="card-row">
+          <dt>Boss等级</dt>
+          <dd data-field="Boss_LV_Min"></dd>
+        </div>
+        <div class="card-row">
+          <dt>推荐性格</dt>
+          <dd data-field="Pre_Nature"></dd>
+        </div>
+        <div class="card-row">
+          <dt>推荐努力值</dt>
+          <dd data-field="Pre_Evs"></dd>
+        </div>
+      </dl>
+      <footer class="card-footer">
+        <button class="card-delete" type="button" data-action="delete">删除</button>
+      </footer>
+    </article>
+  </template>
+
+  <script src="app.js" type="module"></script>
+</body>
+</html>
