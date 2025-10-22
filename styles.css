@@ -799,6 +799,13 @@ select[data-move-select] option[data-separator='true'] {
     padding: 24px;
   }
 
+  .status-panel {
+    width: 100%;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
   .profile-media {
     grid-template-columns: 1fr;
   }
@@ -821,5 +828,192 @@ select[data-move-select] option[data-separator='true'] {
 
   .toast.is-visible {
     transform: translateY(0);
+  }
+}
+
+@media (max-width: 600px) {
+  :root {
+    font-size: 15px;
+  }
+
+  body {
+    padding: 24px 12px;
+    align-items: stretch;
+  }
+
+  .app-shell {
+    width: 100%;
+    border-radius: 20px;
+  }
+
+  .top-bar {
+    padding: 20px;
+    gap: 16px;
+  }
+
+  .branding {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .status-panel {
+    align-items: flex-start;
+  }
+
+  .content {
+    padding: 20px;
+    gap: 24px;
+  }
+
+  .editor {
+    padding: 20px;
+  }
+
+  .editor-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .editor-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .btn {
+    width: 100%;
+  }
+
+  .profile-body {
+    gap: 20px;
+  }
+
+  .profile-media {
+    justify-items: center;
+  }
+
+  .sprite-frame {
+    width: 150px;
+    height: 150px;
+  }
+
+  .profile-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .stat-name {
+    grid-column: 1;
+  }
+
+  .stat-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .move-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .box {
+    padding: 20px;
+  }
+
+  .box-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .box-sorting {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+
+  .box-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .box-sorting select {
+    flex: 1;
+  }
+
+  .card-row {
+    grid-template-columns: 1fr;
+  }
+
+  .card-footer {
+    justify-content: flex-start;
+  }
+
+  .modal {
+    padding: 16px;
+  }
+
+  .modal-content {
+    width: min(100%, 420px);
+    padding: 22px 20px;
+    border-radius: var(--radius-md);
+    max-height: 90vh;
+  }
+
+  .modal-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 440px) {
+  :root {
+    font-size: 14px;
+  }
+
+  body {
+    padding: 16px 10px;
+  }
+
+  .top-bar {
+    padding: 18px;
+  }
+
+  .branding {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .status-panel {
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .editor,
+  .box {
+    padding: 18px;
+  }
+
+  .move-grid label,
+  .profile-metrics .field,
+  .stat-row label {
+    width: 100%;
+  }
+
+  .modal-content {
+    width: 100%;
   }
 }
