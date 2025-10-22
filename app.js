@@ -33,6 +33,8 @@ const STAT_KEYS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
 const DEFAULT_EV_SPREAD = [0, 0, 0, 0, 0, 0];
 const DEFAULT_IV_SPREAD = [31, 31, 31, 31, 31, 31];
 const DEFAULT_BODY_SIZE = 255;
+const DEFAULT_MIN_LEVEL = 1;
+const DEFAULT_MAX_LEVEL = 100;
 const DEFAULT_HELD_ITEM_ID = '1';
 const DEFAULT_HELD_ITEM_NAME = '大师球';
 
@@ -74,6 +76,7 @@ const boxCardTemplate = document.getElementById('boxCardTemplate');
 const fieldPreEvs = document.getElementById('fieldPreEvs');
 const fieldIvs = document.getElementById('fieldIvs');
 const fieldPicture = document.getElementById('fieldPicture');
+const levelInput = document.getElementById('fieldLv');
 const shinyToggle = document.getElementById('fieldShiny');
 const bossToggle = document.getElementById('fieldBoss');
 const chipShiny = document.querySelector('[data-chip="shiny"]');
@@ -235,13 +238,99 @@ function ensureOption(select, value) {
   select.value = value;
 }
 
-function normaliseBodySize(value) {
-  const numeric = Number.parseInt(value ?? '', 10);
+function normaliseBodySize(value, { allowEmpty = false } = {}) {
+  const raw = typeof value === 'string' ? value.trim() : value;
+  if (allowEmpty && raw === '') {
+    return '';
+  }
+  const numeric = Number.parseInt(raw ?? '', 10);
   if (!Number.isFinite(numeric)) {
     return DEFAULT_BODY_SIZE.toString();
   }
   const clamped = Math.min(Math.max(numeric, 0), DEFAULT_BODY_SIZE);
   return clamped.toString();
+}
+
+function parseLevelValue(value) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value !== 'string') {
+    return Number.NaN;
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return Number.NaN;
+  }
+  const numeric = Number.parseInt(trimmed, 10);
+  return Number.isFinite(numeric) ? numeric : Number.NaN;
+}
+
+function getBaseMinLevel(pokemon) {
+  const numeric = parseLevelValue(pokemon?.LV_Min);
+  if (!Number.isFinite(numeric)) {
+    return DEFAULT_MIN_LEVEL;
+  }
+  const floored = Math.floor(numeric);
+  return Math.min(Math.max(floored, DEFAULT_MIN_LEVEL), DEFAULT_MAX_LEVEL);
+}
+
+function getBossMinLevel(pokemon) {
+  const base = getBaseMinLevel(pokemon);
+  const numeric = parseLevelValue(pokemon?.Boss_LV_Min);
+  if (!Number.isFinite(numeric)) {
+    return base;
+  }
+  const floored = Math.floor(numeric);
+  const adjusted = Math.max(floored, base, DEFAULT_MIN_LEVEL);
+  return Math.min(adjusted, DEFAULT_MAX_LEVEL);
+}
+
+function getEffectiveMinLevel(pokemon) {
+  const base = getBaseMinLevel(pokemon);
+  if (bossToggle && bossToggle.checked) {
+    return Math.max(base, getBossMinLevel(pokemon));
+  }
+  return base;
+}
+
+function clampLevelValue(value, minLevel) {
+  const minimum = Number.isFinite(minLevel) ? minLevel : DEFAULT_MIN_LEVEL;
+  let numeric = parseLevelValue(value);
+  if (!Number.isFinite(numeric)) {
+    numeric = minimum;
+  }
+  numeric = Math.floor(numeric);
+  if (numeric < minimum) {
+    numeric = minimum;
+  }
+  if (numeric < DEFAULT_MIN_LEVEL) {
+    numeric = DEFAULT_MIN_LEVEL;
+  }
+  if (numeric > DEFAULT_MAX_LEVEL) {
+    numeric = DEFAULT_MAX_LEVEL;
+  }
+  return numeric;
+}
+
+function updateLevelConstraints({ enforceValue = true } = {}) {
+  if (!levelInput) {
+    return;
+  }
+  const minimum = getEffectiveMinLevel(state.current);
+  const clampedMin = Math.min(Math.max(minimum, DEFAULT_MIN_LEVEL), DEFAULT_MAX_LEVEL);
+  levelInput.min = clampedMin.toString();
+  levelInput.max = DEFAULT_MAX_LEVEL.toString();
+  if (!enforceValue) {
+    return;
+  }
+  const value = levelInput.value.trim();
+  if (!value) {
+    levelInput.value = clampedMin.toString();
+    return;
+  }
+  const normalised = clampLevelValue(value, clampedMin);
+  levelInput.value = normalised.toString();
 }
 
 function parseSpread(spread, fallback) {
@@ -331,7 +420,10 @@ function updateBodySizeControl() {
     bodySizeInput.disabled = true;
   } else {
     bodySizeInput.disabled = false;
-    bodySizeInput.value = normaliseBodySize(bodySizeInput.value);
+    const shouldKeepEmpty = document.activeElement === bodySizeInput && bodySizeInput.value.trim() === '';
+    bodySizeInput.value = shouldKeepEmpty
+      ? ''
+      : normaliseBodySize(bodySizeInput.value, { allowEmpty: true });
   }
 }
 
@@ -561,6 +653,7 @@ function fillForm(pokemon) {
   }
   updateChips();
   updateBodySizeControl();
+  updateLevelConstraints();
 
   ensureOption(ballSelect, pokemon?.Pre_Ball ?? '');
   ensureOption(itemSelect, pokemon?.Held_Item ?? '');
@@ -640,6 +733,7 @@ function handleSelectPokemon(no) {
 }
 
 function collectFormData() {
+  updateLevelConstraints();
   const formData = new FormData(form);
   const base = { ...(state.current || {}) };
   const data = { ...base };
@@ -668,6 +762,8 @@ function collectFormData() {
   data.Is_Shiny = shinyToggle ? shinyToggle.checked : Boolean(data.Is_Shiny);
   data.Is_Boss = bossToggle ? bossToggle.checked : Boolean(data.Is_Boss);
   data.Body_Size = normaliseBodySize(bodySizeInput ? bodySizeInput.value : data.Body_Size);
+  const minLevel = getEffectiveMinLevel(state.current);
+  data.LV_Min = clampLevelValue(data.LV_Min, minLevel).toString();
   return data;
 }
 
@@ -809,12 +905,37 @@ function initBodySizeControl() {
   if (!bodySizeInput) {
     return;
   }
-  const normalise = () => {
-    bodySizeInput.value = normaliseBodySize(bodySizeInput.value);
+  const handleInput = () => {
+    bodySizeInput.value = normaliseBodySize(bodySizeInput.value, { allowEmpty: true });
   };
-  bodySizeInput.addEventListener('input', normalise);
-  bodySizeInput.addEventListener('blur', normalise);
+  const handleBlur = () => {
+    if (bodySizeInput.value.trim() === '') {
+      bodySizeInput.value = '0';
+    } else {
+      bodySizeInput.value = normaliseBodySize(bodySizeInput.value);
+    }
+  };
+  bodySizeInput.addEventListener('input', handleInput);
+  bodySizeInput.addEventListener('blur', handleBlur);
   updateBodySizeControl();
+}
+
+function initLevelControl() {
+  if (!levelInput) {
+    return;
+  }
+  levelInput.min = DEFAULT_MIN_LEVEL.toString();
+  levelInput.max = DEFAULT_MAX_LEVEL.toString();
+  levelInput.addEventListener('input', () => {
+    const digitsOnly = levelInput.value.replace(/[^0-9]/g, '');
+    if (digitsOnly !== levelInput.value) {
+      levelInput.value = digitsOnly;
+    }
+  });
+  levelInput.addEventListener('blur', () => {
+    updateLevelConstraints();
+  });
+  updateLevelConstraints();
 }
 
 function initToggles() {
@@ -822,6 +943,7 @@ function initToggles() {
   bossToggle?.addEventListener('change', () => {
     updateChips();
     updateBodySizeControl();
+    updateLevelConstraints();
   });
 }
 
@@ -869,6 +991,7 @@ function main() {
   initModalClose();
   initStatHandlers();
   initBodySizeControl();
+  initLevelControl();
   initToggles();
   initPicturePreview();
   initMoveSelectors();
