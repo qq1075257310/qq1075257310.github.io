@@ -77,6 +77,14 @@ const spritePlaceholder = document.getElementById('spritePlaceholder');
 const evTotal = document.getElementById('evTotal');
 const evWarning = document.getElementById('evWarning');
 const notification = document.getElementById('notification');
+const moveSelects = [
+  document.getElementById('fieldPreMove1'),
+  document.getElementById('fieldPreMove2'),
+  document.getElementById('fieldPreMove3'),
+  document.getElementById('fieldPreMove4')
+];
+
+const moveSelectPreviousValues = new Map();
 
 const evInputs = STAT_KEYS.map((stat) => form.elements.namedItem(`ev_${stat}`));
 const ivInputs = STAT_KEYS.map((stat) => form.elements.namedItem(`iv_${stat}`));
@@ -161,6 +169,24 @@ function parseNatureList(text) {
       return { name };
     })
     .filter((item) => item.name);
+}
+
+function parseMoveList(raw) {
+  if (typeof raw !== 'string') {
+    return [];
+  }
+  const parts = raw.split('-');
+  const seen = new Set();
+  const moves = [];
+  parts.forEach((part) => {
+    const name = part.trim();
+    if (!name || seen.has(name)) {
+      return;
+    }
+    seen.add(name);
+    moves.push(name);
+  });
+  return moves;
 }
 
 function populateSelect(select, items, placeholder) {
@@ -383,6 +409,100 @@ function updateSprite(url) {
   tryLoad([...candidates]);
 }
 
+function updateMoveSelectOptions(pokemon) {
+  const levelMoves = parseMoveList(pokemon?.Move_Lv);
+  const tmMoves = parseMoveList(pokemon?.Move_TM);
+  const needsSeparator = levelMoves.length > 0 && tmMoves.length > 0;
+
+  const buildOptions = (select, moves, category) => {
+    moves.forEach((move) => {
+      const option = document.createElement('option');
+      option.value = move;
+      option.textContent = move;
+      option.dataset.category = category;
+      select.appendChild(option);
+    });
+  };
+
+  moveSelects.forEach((select, index) => {
+    if (!select) return;
+    const currentValue = pokemon?.[`Pre_Move${index + 1}`] || '';
+    const previousValue = moveSelectPreviousValues.get(select) || '';
+
+    select.innerHTML = '';
+    const placeholderOption = document.createElement('option');
+    placeholderOption.value = '';
+    placeholderOption.textContent = '选择技能';
+    select.appendChild(placeholderOption);
+
+    buildOptions(select, levelMoves, 'level');
+
+    if (needsSeparator) {
+      const separatorOption = document.createElement('option');
+      separatorOption.value = '';
+      separatorOption.textContent = '──────────';
+      separatorOption.disabled = true;
+      separatorOption.dataset.separator = 'true';
+      select.appendChild(separatorOption);
+    }
+
+    buildOptions(select, tmMoves, 'tm');
+
+    if (currentValue) {
+      ensureOption(select, currentValue);
+    }
+
+    const fallbackValue = currentValue || previousValue || '';
+    select.value = fallbackValue;
+    moveSelectPreviousValues.set(select, fallbackValue);
+  });
+}
+
+function syncMoveSelectPreviousValues() {
+  moveSelects.forEach((select) => {
+    if (!select) return;
+    moveSelectPreviousValues.set(select, select.value || '');
+  });
+}
+
+function handleMoveSelectChange(event) {
+  const select = event.target;
+  if (!select) return;
+  const newValue = select.value;
+  const previousValue = moveSelectPreviousValues.get(select) || '';
+
+  if (!newValue) {
+    moveSelectPreviousValues.set(select, '');
+    return;
+  }
+
+  const hasDuplicate = moveSelects.some((other) => {
+    if (!other || other === select) return false;
+    return other.value === newValue;
+  });
+
+  if (hasDuplicate) {
+    showNotification('不能选择相同技能！');
+    const rollbackValue = previousValue || '';
+    const exists = Array.from(select.options).some((option) => option.value === rollbackValue);
+    if (!exists && rollbackValue) {
+      ensureOption(select, rollbackValue);
+    }
+    select.value = rollbackValue;
+    return;
+  }
+
+  moveSelectPreviousValues.set(select, newValue);
+}
+
+function initMoveSelectors() {
+  moveSelects.forEach((select) => {
+    if (!select) return;
+    moveSelectPreviousValues.set(select, select.value || '');
+    select.addEventListener('change', handleMoveSelectChange);
+  });
+}
+
 function fillForm(pokemon) {
   fieldNames.forEach((name) => {
     const field = form.elements.namedItem(name);
@@ -422,7 +542,9 @@ function setCurrent(pokemon) {
   };
 
   state.current = enriched;
+  updateMoveSelectOptions(enriched);
   fillForm(enriched);
+  syncMoveSelectPreviousValues();
 
   const paddedNo = enriched?.No ? enriched.No.toString().padStart(3, '0') : '--';
   currentNumber.textContent = paddedNo;
@@ -688,6 +810,7 @@ function main() {
   initStatHandlers();
   initToggles();
   initPicturePreview();
+  initMoveSelectors();
   renderBox();
 
   Promise.all([loadReferenceLists(), fetchData()])
