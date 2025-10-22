@@ -39,7 +39,6 @@ const state = {
   pokemonList: [],
   current: null,
   box: [],
-  editingEntry: null,
   lists: {
     balls: [],
     items: [],
@@ -453,39 +452,23 @@ function renderSelectorList(list) {
 function handleSelectPokemon(no) {
   const pokemon = state.pokemonList.find((item) => item.No?.toString() === no?.toString());
   if (!pokemon) return;
-  state.editingEntry = null;
   setCurrent({ ...pokemon });
   closeModal();
 }
 
 function collectFormData() {
   const formData = new FormData(form);
-  const base = { ...(state.current || {}) };
-  const data = { ...base };
+  const data = {};
   fieldNames.forEach((name) => {
     const value = formData.get(name);
-    if (value !== null) {
-      data[name] = typeof value === 'string' ? value.trim() : '';
-    } else if (!(name in data)) {
-      data[name] = '';
-    }
+    data[name] = typeof value === 'string' ? value.trim() : '';
   });
   data.Pre_Evs = fieldPreEvs.value;
   data.Ivs = fieldIvs.value;
   const pictureValue = fieldPicture ? fieldPicture.value.trim() : '';
-  data.Picture = pictureValue || data.Picture || data.No || state.current?.No?.toString() || '';
-  data.No = data.No ? data.No.toString() : '';
-  if (!data.CN_Name && state.current?.CN_Name) {
-    data.CN_Name = state.current.CN_Name;
-  }
-  if (!data.ENG_Name && state.current?.ENG_Name) {
-    data.ENG_Name = state.current.ENG_Name;
-  }
-  if (!data.Web_Name && state.current?.Web_Name) {
-    data.Web_Name = state.current.Web_Name;
-  }
-  data.Is_Shiny = shinyToggle ? shinyToggle.checked : Boolean(data.Is_Shiny);
-  data.Is_Boss = bossToggle ? bossToggle.checked : Boolean(data.Is_Boss);
+  data.Picture = pictureValue || data.No || state.current?.No?.toString() || '';
+  data.Is_Shiny = shinyToggle ? shinyToggle.checked : false;
+  data.Is_Boss = bossToggle ? bossToggle.checked : false;
   return data;
 }
 
@@ -535,14 +518,10 @@ function renderBox() {
     const editBtn = card.querySelector('[data-action="edit"]');
     const deleteBtn = card.querySelector('[data-action="delete"]');
     editBtn.addEventListener('click', () => {
-      state.editingEntry = pokemon;
       setCurrent({ ...pokemon });
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
     deleteBtn.addEventListener('click', () => {
-      if (state.editingEntry === pokemon) {
-        state.editingEntry = null;
-      }
       state.box = state.box.filter((item) => item !== pokemon);
       renderBox();
     });
@@ -556,20 +535,13 @@ function handleSaveToBox() {
   if (!formData.No) {
     return;
   }
-  let isNewEntry = false;
-  if (state.editingEntry && state.box.includes(state.editingEntry)) {
-    Object.assign(state.editingEntry, formData);
+  const existingIndex = state.box.findIndex((item) => item.No === formData.No);
+  if (existingIndex >= 0) {
+    state.box[existingIndex] = { ...formData };
   } else {
-    const entry = { ...formData };
-    state.box.push(entry);
-    isNewEntry = true;
-    state.editingEntry = null;
+    state.box.push({ ...formData });
   }
-  state.current = { ...(state.current || {}), ...formData };
   renderBox();
-  if (isNewEntry) {
-    alert('已成功添加到箱子！');
-  }
 }
 
 function handleSearch(event) {
