@@ -43,78 +43,224 @@
         </div>
 
         <form class="editor-form" id="pokemonForm">
-          <div class="form-row">
-            <label for="fieldNo">编号</label>
-            <input id="fieldNo" name="No" type="text" readonly>
-          </div>
-          <div class="form-row">
-            <label for="fieldDex">全国图鉴</label>
-            <input id="fieldDex" name="Dex_No" type="text">
-          </div>
-          <div class="form-row">
-            <label for="fieldCN">中文名</label>
-            <input id="fieldCN" name="CN_Name" type="text">
-          </div>
-          <div class="form-row">
-            <label for="fieldENG">英文名</label>
-            <input id="fieldENG" name="ENG_Name" type="text">
-          </div>
-          <div class="form-row">
-            <label for="fieldGender">性别设定</label>
-            <input id="fieldGender" name="Gender_Type" type="text">
-          </div>
-          <div class="form-row">
-            <label for="fieldLv">基础等级</label>
-            <input id="fieldLv" name="LV_Min" type="text">
-          </div>
-          <div class="form-row">
-            <label for="fieldBossLv">Boss等级</label>
-            <input id="fieldBossLv" name="Boss_LV_Min" type="text">
-          </div>
-          <div class="form-row full">
-            <label for="fieldMoveLv">升级招式</label>
-            <textarea id="fieldMoveLv" name="Move_Lv" rows="3"></textarea>
-          </div>
-          <div class="form-row full">
-            <label for="fieldMoveTm">招式教学机</label>
-            <textarea id="fieldMoveTm" name="Move_TM" rows="3"></textarea>
-          </div>
-          <div class="form-row full">
-            <label for="fieldMoveBoss">Boss招式</label>
-            <input id="fieldMoveBoss" name="Move_Boss" type="text">
-          </div>
-          <div class="form-row">
-            <label for="fieldPreMove1">继承招式 1</label>
-            <input id="fieldPreMove1" name="Pre_Move1" type="text">
-          </div>
-          <div class="form-row">
-            <label for="fieldPreMove2">继承招式 2</label>
-            <input id="fieldPreMove2" name="Pre_Move2" type="text">
-          </div>
-          <div class="form-row">
-            <label for="fieldPreMove3">继承招式 3</label>
-            <input id="fieldPreMove3" name="Pre_Move3" type="text">
-          </div>
-          <div class="form-row">
-            <label for="fieldPreMove4">继承招式 4</label>
-            <input id="fieldPreMove4" name="Pre_Move4" type="text">
-          </div>
-          <div class="form-row">
-            <label for="fieldPreEvs">推荐努力值</label>
-            <input id="fieldPreEvs" name="Pre_Evs" type="text">
-          </div>
-          <div class="form-row">
-            <label for="fieldPreNature">推荐性格</label>
-            <input id="fieldPreNature" name="Pre_Nature" type="text">
-          </div>
-          <div class="form-row">
-            <label for="fieldPreGender">性别偏好</label>
-            <input id="fieldPreGender" name="Pre_Gender" type="text">
-          </div>
-          <div class="form-row">
-            <label for="fieldPreBall">精灵球</label>
-            <input id="fieldPreBall" name="Pre_Ball" type="text">
-          </div>
+          <input type="hidden" id="fieldPreEvs" name="Pre_Evs" value="0-0-0-0-0-0">
+          <input type="hidden" id="fieldIvs" name="Ivs" value="31-31-31-31-31-31">
+
+          <section class="panel profile-panel" aria-labelledby="profileTitle">
+            <div class="panel-header">
+              <div>
+                <p class="panel-kicker">精灵档案</p>
+                <h3 id="profileTitle">基础信息</h3>
+              </div>
+              <div class="chip-stack" id="profileChips">
+                <span class="chip is-shiny" data-chip="shiny" hidden>闪光</span>
+                <span class="chip is-boss" data-chip="boss" hidden>头目</span>
+              </div>
+            </div>
+
+            <div class="profile-body">
+              <div class="profile-media">
+                <div class="sprite-card">
+                  <div class="sprite-frame">
+                    <img id="spriteImage" alt="精灵立绘" hidden>
+                    <div class="sprite-placeholder" id="spritePlaceholder" aria-hidden="true">?
+                    </div>
+                  </div>
+                  <label class="field">
+                    <span>图片链接</span>
+                    <input id="fieldPicture" name="Picture" type="text" placeholder="https://...">
+                  </label>
+                </div>
+
+                <div class="toggle-list">
+                  <label class="toggle-chip">
+                    <input type="checkbox" id="fieldShiny" name="Is_Shiny">
+                    <span>闪光形态</span>
+                  </label>
+                  <label class="toggle-chip">
+                    <input type="checkbox" id="fieldBoss" name="Is_Boss">
+                    <span>头目形态</span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="profile-info">
+                <div class="profile-names">
+                  <label class="field">
+                    <span>中文名</span>
+                    <input id="fieldCN" name="CN_Name" type="text" placeholder="请输入中文名">
+                  </label>
+                  <label class="field">
+                    <span>英文名</span>
+                    <input id="fieldENG" name="ENG_Name" type="text" placeholder="请输入英文名">
+                  </label>
+                  <label class="field">
+                    <span>图鉴编号</span>
+                    <input id="fieldDex" name="Dex_No" type="text">
+                  </label>
+                  <label class="field">
+                    <span>站内别名</span>
+                    <input id="fieldWebName" name="Web_Name" type="text" placeholder="用于展示的别称">
+                  </label>
+                </div>
+
+                <div class="profile-metrics">
+                  <label class="field">
+                    <span>档案编号</span>
+                    <input id="fieldNo" name="No" type="text" readonly>
+                  </label>
+                  <label class="field">
+                    <span>基础等级</span>
+                    <input id="fieldLv" name="LV_Min" type="number" min="1" max="100">
+                  </label>
+                  <label class="field">
+                    <span>Boss等级</span>
+                    <input id="fieldBossLv" name="Boss_LV_Min" type="number" min="1" max="100">
+                  </label>
+                  <label class="field">
+                    <span>性别设定</span>
+                    <input id="fieldGender" name="Gender_Type" type="text">
+                  </label>
+                  <label class="field">
+                    <span>推荐性别</span>
+                    <input id="fieldPreGender" name="Pre_Gender" type="text">
+                  </label>
+                  <label class="field">
+                    <span>推荐精灵球</span>
+                    <select id="fieldPreBall" name="Pre_Ball"></select>
+                  </label>
+                  <label class="field">
+                    <span>推荐持有道具</span>
+                    <select id="fieldHeldItem" name="Held_Item"></select>
+                  </label>
+                  <label class="field">
+                    <span>推荐性格</span>
+                    <select id="fieldPreNature" name="Pre_Nature"></select>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel stats-panel" aria-labelledby="statsTitle">
+            <div class="panel-header">
+              <div>
+                <p class="panel-kicker">养成配置</p>
+                <h3 id="statsTitle">个体值与努力值</h3>
+              </div>
+            </div>
+            <div class="stat-grid">
+              <div class="stat-row" data-stat="hp">
+                <span class="stat-name">HP</span>
+                <label>
+                  <span>个体值</span>
+                  <input type="number" name="iv_hp" min="0" max="31" value="31">
+                </label>
+                <label>
+                  <span>努力值</span>
+                  <input type="number" name="ev_hp" min="0" max="252" value="0">
+                </label>
+              </div>
+              <div class="stat-row" data-stat="atk">
+                <span class="stat-name">攻击</span>
+                <label>
+                  <span>个体值</span>
+                  <input type="number" name="iv_atk" min="0" max="31" value="31">
+                </label>
+                <label>
+                  <span>努力值</span>
+                  <input type="number" name="ev_atk" min="0" max="252" value="0">
+                </label>
+              </div>
+              <div class="stat-row" data-stat="def">
+                <span class="stat-name">防御</span>
+                <label>
+                  <span>个体值</span>
+                  <input type="number" name="iv_def" min="0" max="31" value="31">
+                </label>
+                <label>
+                  <span>努力值</span>
+                  <input type="number" name="ev_def" min="0" max="252" value="0">
+                </label>
+              </div>
+              <div class="stat-row" data-stat="spa">
+                <span class="stat-name">特攻</span>
+                <label>
+                  <span>个体值</span>
+                  <input type="number" name="iv_spa" min="0" max="31" value="31">
+                </label>
+                <label>
+                  <span>努力值</span>
+                  <input type="number" name="ev_spa" min="0" max="252" value="0">
+                </label>
+              </div>
+              <div class="stat-row" data-stat="spd">
+                <span class="stat-name">特防</span>
+                <label>
+                  <span>个体值</span>
+                  <input type="number" name="iv_spd" min="0" max="31" value="31">
+                </label>
+                <label>
+                  <span>努力值</span>
+                  <input type="number" name="ev_spd" min="0" max="252" value="0">
+                </label>
+              </div>
+              <div class="stat-row" data-stat="spe">
+                <span class="stat-name">速度</span>
+                <label>
+                  <span>个体值</span>
+                  <input type="number" name="iv_spe" min="0" max="31" value="31">
+                </label>
+                <label>
+                  <span>努力值</span>
+                  <input type="number" name="ev_spe" min="0" max="252" value="0">
+                </label>
+              </div>
+            </div>
+            <div class="stat-footer">
+              <p>努力值总计：<span id="evTotal">0</span> / 510</p>
+              <p class="stat-warning" id="evWarning" hidden>努力值总量已达上限</p>
+            </div>
+          </section>
+
+          <section class="panel move-panel" aria-labelledby="moveTitle">
+            <div class="panel-header">
+              <div>
+                <p class="panel-kicker">招式配置</p>
+                <h3 id="moveTitle">常规与继承技能</h3>
+              </div>
+            </div>
+            <div class="move-grid">
+              <label class="field full">
+                <span>升级招式</span>
+                <textarea id="fieldMoveLv" name="Move_Lv" rows="4" placeholder="按照升级顺序填写"></textarea>
+              </label>
+              <label class="field full">
+                <span>教学机招式</span>
+                <textarea id="fieldMoveTm" name="Move_TM" rows="4" placeholder="填写可学 TM 招式"></textarea>
+              </label>
+              <label class="field">
+                <span>Boss 专属招式</span>
+                <input id="fieldMoveBoss" name="Move_Boss" type="text">
+              </label>
+              <label class="field">
+                <span>继承招式 1</span>
+                <input id="fieldPreMove1" name="Pre_Move1" type="text">
+              </label>
+              <label class="field">
+                <span>继承招式 2</span>
+                <input id="fieldPreMove2" name="Pre_Move2" type="text">
+              </label>
+              <label class="field">
+                <span>继承招式 3</span>
+                <input id="fieldPreMove3" name="Pre_Move3" type="text">
+              </label>
+              <label class="field">
+                <span>继承招式 4</span>
+                <input id="fieldPreMove4" name="Pre_Move4" type="text">
+              </label>
+            </div>
+          </section>
         </form>
       </section>
 
@@ -165,6 +311,11 @@
         <div>
           <p class="card-number">#<span data-field="No"></span></p>
           <h4 class="card-name" data-field="CN_Name"></h4>
+          <p class="card-subname" data-field="ENG_Name"></p>
+        </div>
+        <div class="card-tags">
+          <span class="card-chip shiny" data-tag="shiny">闪光</span>
+          <span class="card-chip boss" data-tag="boss">头目</span>
         </div>
         <button class="card-edit" type="button" data-action="edit">编辑</button>
       </header>
@@ -178,12 +329,24 @@
           <dd data-field="Boss_LV_Min"></dd>
         </div>
         <div class="card-row">
-          <dt>推荐性格</dt>
+          <dt>球种</dt>
+          <dd data-field="Pre_Ball"></dd>
+        </div>
+        <div class="card-row">
+          <dt>性格</dt>
           <dd data-field="Pre_Nature"></dd>
         </div>
         <div class="card-row">
-          <dt>推荐努力值</dt>
+          <dt>道具</dt>
+          <dd data-field="Held_Item"></dd>
+        </div>
+        <div class="card-row">
+          <dt>努力值</dt>
           <dd data-field="Pre_Evs"></dd>
+        </div>
+        <div class="card-row">
+          <dt>个体值</dt>
+          <dd data-field="Ivs"></dd>
         </div>
       </dl>
       <footer class="card-footer">
