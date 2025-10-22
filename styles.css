@@ -435,6 +435,11 @@ textarea {
   grid-column: 1 / -1;
 }
 
+select[data-move-select] option[data-separator='true'] {
+  color: var(--text-subtle);
+  font-size: 0.75rem;
+}
+
 .box {
   background: var(--panel-bg);
   border-radius: var(--radius-md);
