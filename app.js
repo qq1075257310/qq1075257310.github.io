@@ -24,6 +24,7 @@ const fieldNames = [
   'Pre_Gender',
   'Pre_Ball',
   'Held_Item',
+  'Body_Size',
   'Picture',
   'Ivs'
 ];
@@ -31,6 +32,9 @@ const fieldNames = [
 const STAT_KEYS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
 const DEFAULT_EV_SPREAD = [0, 0, 0, 0, 0, 0];
 const DEFAULT_IV_SPREAD = [31, 31, 31, 31, 31, 31];
+const DEFAULT_BODY_SIZE = 255;
+const DEFAULT_HELD_ITEM_ID = '1';
+const DEFAULT_HELD_ITEM_NAME = '大师球';
 
 const PICTURE_DIR = 'picture';
 const PICTURE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'];
@@ -48,6 +52,11 @@ const state = {
 };
 
 let notificationTimeoutId = null;
+
+function getDefaultHeldItemName() {
+  const match = state.lists.items.find((item) => item.id === DEFAULT_HELD_ITEM_ID);
+  return match?.name || DEFAULT_HELD_ITEM_NAME;
+}
 
 const form = document.getElementById('pokemonForm');
 const currentNumber = document.getElementById('currentNumber');
@@ -72,6 +81,7 @@ const chipBoss = document.querySelector('[data-chip="boss"]');
 const ballSelect = document.getElementById('fieldPreBall');
 const itemSelect = document.getElementById('fieldHeldItem');
 const natureSelect = document.getElementById('fieldPreNature');
+const bodySizeInput = document.getElementById('fieldBodySize');
 const spriteImage = document.getElementById('spriteImage');
 const spritePlaceholder = document.getElementById('spritePlaceholder');
 const evTotal = document.getElementById('evTotal');
@@ -194,10 +204,12 @@ function populateSelect(select, items, placeholder) {
   const previousValue = select.value;
   select.innerHTML = '';
   const fragment = document.createDocumentFragment();
-  const placeholderOption = document.createElement('option');
-  placeholderOption.value = '';
-  placeholderOption.textContent = placeholder;
-  fragment.appendChild(placeholderOption);
+  if (placeholder) {
+    const placeholderOption = document.createElement('option');
+    placeholderOption.value = '';
+    placeholderOption.textContent = placeholder;
+    fragment.appendChild(placeholderOption);
+  }
   items.forEach((item) => {
     const option = document.createElement('option');
     option.value = item.name;
@@ -221,6 +233,15 @@ function ensureOption(select, value) {
     select.appendChild(option);
   }
   select.value = value;
+}
+
+function normaliseBodySize(value) {
+  const numeric = Number.parseInt(value ?? '', 10);
+  if (!Number.isFinite(numeric)) {
+    return DEFAULT_BODY_SIZE.toString();
+  }
+  const clamped = Math.min(Math.max(numeric, 0), DEFAULT_BODY_SIZE);
+  return clamped.toString();
 }
 
 function parseSpread(spread, fallback) {
@@ -297,6 +318,20 @@ function updateChips() {
   }
   if (chipBoss && bossToggle) {
     chipBoss.hidden = !bossToggle.checked;
+  }
+}
+
+function updateBodySizeControl() {
+  if (!bodySizeInput) {
+    return;
+  }
+  const isBoss = bossToggle ? bossToggle.checked : false;
+  if (isBoss) {
+    bodySizeInput.value = DEFAULT_BODY_SIZE.toString();
+    bodySizeInput.disabled = true;
+  } else {
+    bodySizeInput.disabled = false;
+    bodySizeInput.value = normaliseBodySize(bodySizeInput.value);
   }
 }
 
@@ -511,6 +546,10 @@ function fillForm(pokemon) {
     field.value = value;
   });
 
+  if (bodySizeInput) {
+    bodySizeInput.value = normaliseBodySize(pokemon?.Body_Size ?? bodySizeInput.value);
+  }
+
   applyEvSpread(fieldPreEvs.value);
   applyIvSpread(fieldIvs.value);
 
@@ -521,6 +560,7 @@ function fillForm(pokemon) {
     bossToggle.checked = Boolean(pokemon?.Is_Boss);
   }
   updateChips();
+  updateBodySizeControl();
 
   ensureOption(ballSelect, pokemon?.Pre_Ball ?? '');
   ensureOption(itemSelect, pokemon?.Held_Item ?? '');
@@ -533,7 +573,8 @@ function fillForm(pokemon) {
 function setCurrent(pokemon) {
   const enriched = {
     ...pokemon,
-    Held_Item: pokemon?.Held_Item ?? '',
+    Held_Item: pokemon?.Held_Item ?? getDefaultHeldItemName(),
+    Body_Size: normaliseBodySize(pokemon?.Body_Size),
     Picture: pokemon?.Picture || pokemon?.No?.toString() || '',
     Ivs: pokemon?.Ivs ?? DEFAULT_IV_SPREAD.join('-'),
     Pre_Evs: pokemon?.Pre_Evs ?? DEFAULT_EV_SPREAD.join('-'),
@@ -626,6 +667,7 @@ function collectFormData() {
   }
   data.Is_Shiny = shinyToggle ? shinyToggle.checked : Boolean(data.Is_Shiny);
   data.Is_Boss = bossToggle ? bossToggle.checked : Boolean(data.Is_Boss);
+  data.Body_Size = normaliseBodySize(bodySizeInput ? bodySizeInput.value : data.Body_Size);
   return data;
 }
 
@@ -763,9 +805,24 @@ function initStatHandlers() {
   });
 }
 
+function initBodySizeControl() {
+  if (!bodySizeInput) {
+    return;
+  }
+  const normalise = () => {
+    bodySizeInput.value = normaliseBodySize(bodySizeInput.value);
+  };
+  bodySizeInput.addEventListener('input', normalise);
+  bodySizeInput.addEventListener('blur', normalise);
+  updateBodySizeControl();
+}
+
 function initToggles() {
   shinyToggle?.addEventListener('change', updateChips);
-  bossToggle?.addEventListener('change', updateChips);
+  bossToggle?.addEventListener('change', () => {
+    updateChips();
+    updateBodySizeControl();
+  });
 }
 
 function initPicturePreview() {
@@ -789,17 +846,20 @@ function loadReferenceLists() {
     fetchText(BALL_LIST_URL).then((text) => {
       const list = parseTableList(text);
       state.lists.balls = list;
-      populateSelect(ballSelect, list, '选择精灵球');
+      populateSelect(ballSelect, list);
     }),
     fetchText(ITEM_LIST_URL).then((text) => {
       const list = parseTableList(text);
       state.lists.items = list;
-      populateSelect(itemSelect, list, '选择道具');
+      populateSelect(itemSelect, list);
+      if (itemSelect && !itemSelect.value && list.length > 0) {
+        itemSelect.value = getDefaultHeldItemName();
+      }
     }),
     fetchText(NATURE_LIST_URL).then((text) => {
       const list = parseNatureList(text);
       state.lists.natures = list;
-      populateSelect(natureSelect, list, '选择性格');
+      populateSelect(natureSelect, list);
     })
   ]);
 }
@@ -808,6 +868,7 @@ function main() {
   updateDate();
   initModalClose();
   initStatHandlers();
+  initBodySizeControl();
   initToggles();
   initPicturePreview();
   initMoveSelectors();
