@@ -32,6 +32,9 @@ const STAT_KEYS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
 const DEFAULT_EV_SPREAD = [0, 0, 0, 0, 0, 0];
 const DEFAULT_IV_SPREAD = [31, 31, 31, 31, 31, 31];
 
+const PICTURE_DIR = 'picture';
+const PICTURE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'];
+
 const state = {
   pokemonList: [],
   current: null,
@@ -252,17 +255,113 @@ function updateChips() {
   }
 }
 
+let spriteLoadToken = 0;
+
+function resolveSpriteSources(rawValue) {
+  const value = (rawValue || '').trim();
+  if (!value) {
+    return [];
+  }
+
+  const isAbsoluteUrl = /^(https?:|data:|blob:)/i.test(value);
+  const isRelativePath = value.startsWith('./') || value.startsWith('../') || value.startsWith('/');
+  if (isAbsoluteUrl || isRelativePath) {
+    return [value];
+  }
+
+  const numericWithExt = value.match(/^(\d+)\.(png|jpe?g|webp|gif|svg)$/i);
+  if (numericWithExt) {
+    const [, numberPart, ext] = numericWithExt;
+    const extension = ext.toLowerCase();
+    const normalised = numberPart.replace(/^0+/, '') || '0';
+    const padded = numberPart.padStart(3, '0');
+    const candidates = new Set();
+    candidates.add(`${PICTURE_DIR}/${numberPart}.${extension}`);
+    candidates.add(`${PICTURE_DIR}/${normalised}.${extension}`);
+    candidates.add(`${PICTURE_DIR}/${padded}.${extension}`);
+    return Array.from(candidates);
+  }
+
+  const numericOnly = value.match(/^\d+$/);
+  if (numericOnly) {
+    const numberPart = value;
+    const normalised = numberPart.replace(/^0+/, '') || '0';
+    const padded = numberPart.padStart(3, '0');
+    const candidates = new Set();
+    PICTURE_EXTENSIONS.forEach((ext) => {
+      candidates.add(`${PICTURE_DIR}/${numberPart}.${ext}`);
+      candidates.add(`${PICTURE_DIR}/${normalised}.${ext}`);
+      candidates.add(`${PICTURE_DIR}/${padded}.${ext}`);
+    });
+    return Array.from(candidates);
+  }
+
+  if (!value.includes('.')) {
+    return [`${PICTURE_DIR}/${value}`];
+  }
+
+  return [value];
+}
+
 function updateSprite(url) {
-  const value = (url || '').trim();
-  if (value) {
-    spriteImage.src = value;
-    spriteImage.hidden = false;
-    spritePlaceholder.hidden = true;
-  } else {
-    spriteImage.removeAttribute('src');
+  if (!spriteImage && !spritePlaceholder) {
+    return;
+  }
+
+  const candidates = resolveSpriteSources(url);
+  const currentToken = ++spriteLoadToken;
+
+  const showPlaceholder = () => {
+    if (spriteImage) {
+      spriteImage.removeAttribute('src');
+      spriteImage.hidden = true;
+    }
+    if (spritePlaceholder) {
+      spritePlaceholder.hidden = false;
+    }
+  };
+
+  if (!candidates.length) {
+    showPlaceholder();
+    return;
+  }
+
+  if (spriteImage) {
     spriteImage.hidden = true;
+  }
+  if (spritePlaceholder) {
     spritePlaceholder.hidden = false;
   }
+
+  const tryLoad = (queue) => {
+    if (currentToken !== spriteLoadToken) {
+      return;
+    }
+    if (!queue.length) {
+      showPlaceholder();
+      return;
+    }
+    const [source, ...rest] = queue;
+    const testImage = new Image();
+    testImage.onload = () => {
+      if (currentToken !== spriteLoadToken) {
+        return;
+      }
+      if (spriteImage) {
+        spriteImage.src = source;
+        spriteImage.hidden = false;
+      }
+      if (spritePlaceholder) {
+        spritePlaceholder.hidden = true;
+      }
+    };
+    testImage.onerror = () => {
+      tryLoad(rest);
+    };
+    testImage.src = source;
+  };
+
+  tryLoad([...candidates]);
 }
 
 function fillForm(pokemon) {
@@ -365,7 +464,7 @@ function collectFormData() {
   });
   data.Pre_Evs = fieldPreEvs.value;
   data.Ivs = fieldIvs.value;
-  data.Picture = fieldPicture.value.trim();
+  data.Picture = fieldPicture ? fieldPicture.value.trim() : '';
   data.Is_Shiny = shinyToggle ? shinyToggle.checked : false;
   data.Is_Boss = bossToggle ? bossToggle.checked : false;
   return data;
@@ -505,10 +604,14 @@ function initPicturePreview() {
     fieldPicture.addEventListener('input', refresh);
     fieldPicture.addEventListener('change', refresh);
   }
-  spriteImage.addEventListener('error', () => {
-    spriteImage.hidden = true;
-    spritePlaceholder.hidden = false;
-  });
+  if (spriteImage) {
+    spriteImage.addEventListener('error', () => {
+      spriteImage.hidden = true;
+      if (spritePlaceholder) {
+        spritePlaceholder.hidden = false;
+      }
+    });
+  }
 }
 
 function loadReferenceLists() {
