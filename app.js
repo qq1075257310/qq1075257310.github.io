@@ -32,6 +32,9 @@ const STAT_KEYS = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];
 const DEFAULT_EV_SPREAD = [0, 0, 0, 0, 0, 0];
 const DEFAULT_IV_SPREAD = [31, 31, 31, 31, 31, 31];
 
+const PICTURE_DIR = 'picture';
+const PICTURE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'];
+
 const state = {
   pokemonList: [],
   current: null,
@@ -252,26 +255,90 @@ function updateChips() {
   }
 }
 
+let spriteLoadToken = 0;
+
+function resolveSpriteSources(rawValue) {
+  const value = (rawValue || '').trim();
+  if (!value) {
+    return [];
+  }
+
+  const isAbsoluteUrl = /^(https?:|data:|blob:)/i.test(value);
+  const isRelativePath = value.startsWith('./') || value.startsWith('../') || value.startsWith('/');
+  if (isAbsoluteUrl || isRelativePath) {
+    return [value];
+  }
+
+  const numericWithExt = value.match(/^(\d+)\.(png|jpe?g|webp|gif|svg)$/i);
+  if (numericWithExt) {
+    const [, numberPart, ext] = numericWithExt;
+    const extension = ext.toLowerCase();
+    const normalised = numberPart.replace(/^0+/, '') || '0';
+    const padded = numberPart.padStart(3, '0');
+    const candidates = new Set();
+    candidates.add(`${PICTURE_DIR}/${numberPart}.${extension}`);
+    candidates.add(`${PICTURE_DIR}/${normalised}.${extension}`);
+    candidates.add(`${PICTURE_DIR}/${padded}.${extension}`);
+    return Array.from(candidates);
+  }
+
+  const numericOnly = value.match(/^\d+$/);
+  if (numericOnly) {
+    const numberPart = value;
+    const normalised = numberPart.replace(/^0+/, '') || '0';
+    const padded = numberPart.padStart(3, '0');
+    const candidates = new Set();
+    PICTURE_EXTENSIONS.forEach((ext) => {
+      candidates.add(`${PICTURE_DIR}/${numberPart}.${ext}`);
+      candidates.add(`${PICTURE_DIR}/${normalised}.${ext}`);
+      candidates.add(`${PICTURE_DIR}/${padded}.${ext}`);
+    });
+    return Array.from(candidates);
+  }
+
+  if (!value.includes('.')) {
+    return [`${PICTURE_DIR}/${value}`];
+  }
+
+  return [value];
+}
+
 function updateSprite(url) {
   if (!spriteImage && !spritePlaceholder) {
     return;
   }
 
-  const value = (url || '').trim();
-  if (spriteImage) {
-    if (value) {
-      spriteImage.src = value;
-      spriteImage.hidden = false;
-    } else {
-      spriteImage.removeAttribute('src');
-      spriteImage.hidden = true;
-    }
   }
 
-  if (spritePlaceholder) {
-    const shouldShowPlaceholder = !value || !spriteImage || spriteImage.hidden;
-    spritePlaceholder.hidden = !shouldShowPlaceholder;
-  }
+  const tryLoad = (queue) => {
+    if (currentToken !== spriteLoadToken) {
+      return;
+    }
+    if (!queue.length) {
+      showPlaceholder();
+      return;
+    }
+    const [source, ...rest] = queue;
+    const testImage = new Image();
+    testImage.onload = () => {
+      if (currentToken !== spriteLoadToken) {
+        return;
+      }
+      if (spriteImage) {
+        spriteImage.src = source;
+        spriteImage.hidden = false;
+      }
+      if (spritePlaceholder) {
+        spritePlaceholder.hidden = true;
+      }
+    };
+    testImage.onerror = () => {
+      tryLoad(rest);
+    };
+    testImage.src = source;
+  };
+
+  tryLoad([...candidates]);
 }
 
 function fillForm(pokemon) {
