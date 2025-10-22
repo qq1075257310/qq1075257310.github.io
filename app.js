@@ -308,29 +308,6 @@ function updateSprite(url) {
     return;
   }
 
-  const candidates = resolveSpriteSources(url);
-  const currentToken = ++spriteLoadToken;
-
-  const showPlaceholder = () => {
-    if (spriteImage) {
-      spriteImage.removeAttribute('src');
-      spriteImage.hidden = true;
-    }
-    if (spritePlaceholder) {
-      spritePlaceholder.hidden = false;
-    }
-  };
-
-  if (!candidates.length) {
-    showPlaceholder();
-    return;
-  }
-
-  if (spriteImage) {
-    spriteImage.hidden = true;
-  }
-  if (spritePlaceholder) {
-    spritePlaceholder.hidden = false;
   }
 
   const tryLoad = (queue) => {
