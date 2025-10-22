@@ -364,14 +364,15 @@ function fillForm(pokemon) {
   ensureOption(itemSelect, pokemon?.Held_Item ?? '');
   ensureOption(natureSelect, pokemon?.Pre_Nature ?? '');
 
-  updateSprite(pokemon?.Picture);
+  const spriteKey = pokemon?.Picture || pokemon?.No?.toString() || '';
+  updateSprite(spriteKey);
 }
 
 function setCurrent(pokemon) {
   const enriched = {
     ...pokemon,
     Held_Item: pokemon?.Held_Item ?? '',
-    Picture: pokemon?.Picture ?? '',
+    Picture: pokemon?.Picture || pokemon?.No?.toString() || '',
     Ivs: pokemon?.Ivs ?? DEFAULT_IV_SPREAD.join('-'),
     Pre_Evs: pokemon?.Pre_Evs ?? DEFAULT_EV_SPREAD.join('-'),
     Is_Shiny: Boolean(pokemon?.Is_Shiny),
@@ -441,7 +442,8 @@ function collectFormData() {
   });
   data.Pre_Evs = fieldPreEvs.value;
   data.Ivs = fieldIvs.value;
-  data.Picture = fieldPicture ? fieldPicture.value.trim() : '';
+  const pictureValue = fieldPicture ? fieldPicture.value.trim() : '';
+  data.Picture = pictureValue || data.No || state.current?.No?.toString() || '';
   data.Is_Shiny = shinyToggle ? shinyToggle.checked : false;
   data.Is_Boss = bossToggle ? bossToggle.checked : false;
   return data;
