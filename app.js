@@ -2,6 +2,7 @@ const DATA_URL = 'test.json';
 const BALL_LIST_URL = 'ball_list.txt';
 const ITEM_LIST_URL = 'itemlist.txt';
 const NATURE_LIST_URL = 'NatureList.txt';
+const LANGUAGE_LIST_URL = 'language.txt';
 
 const fieldNames = [
   'No',
@@ -24,6 +25,7 @@ const fieldNames = [
   'Pre_Gender',
   'Pre_Ball',
   'Held_Item',
+  'Language',
   'Body_Size',
   'Picture',
   'Ivs'
@@ -37,6 +39,7 @@ const DEFAULT_MIN_LEVEL = 1;
 const DEFAULT_MAX_LEVEL = 100;
 const DEFAULT_HELD_ITEM_ID = '1';
 const DEFAULT_HELD_ITEM_NAME = '大师球';
+const DEFAULT_LANGUAGE = 'CHS (简体中文)';
 
 const PICTURE_DIR = 'picture';
 const PICTURE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'];
@@ -49,7 +52,8 @@ const state = {
   lists: {
     balls: [],
     items: [],
-    natures: []
+    natures: [],
+    languages: []
   }
 };
 
@@ -84,6 +88,7 @@ const chipBoss = document.querySelector('[data-chip="boss"]');
 const ballSelect = document.getElementById('fieldPreBall');
 const itemSelect = document.getElementById('fieldHeldItem');
 const natureSelect = document.getElementById('fieldPreNature');
+const languageSelect = document.getElementById('fieldLanguage');
 const bodySizeInput = document.getElementById('fieldBodySize');
 const spriteImage = document.getElementById('spriteImage');
 const spritePlaceholder = document.getElementById('spritePlaceholder');
@@ -668,6 +673,7 @@ function fillForm(pokemon) {
   ensureOption(ballSelect, pokemon?.Pre_Ball ?? '');
   ensureOption(itemSelect, pokemon?.Held_Item ?? '');
   ensureOption(natureSelect, pokemon?.Pre_Nature ?? '');
+  ensureOption(languageSelect, pokemon?.Language ?? DEFAULT_LANGUAGE);
 
   const spriteKey = pokemon?.Picture || pokemon?.No?.toString() || '';
   updateSprite(spriteKey);
@@ -682,7 +688,8 @@ function setCurrent(pokemon) {
     Ivs: pokemon?.Ivs ?? DEFAULT_IV_SPREAD.join('-'),
     Pre_Evs: pokemon?.Pre_Evs ?? DEFAULT_EV_SPREAD.join('-'),
     Is_Shiny: Boolean(pokemon?.Is_Shiny),
-    Is_Boss: Boolean(pokemon?.Is_Boss)
+    Is_Boss: Boolean(pokemon?.Is_Boss),
+    Language: pokemon?.Language || DEFAULT_LANGUAGE
   };
 
   state.current = enriched;
@@ -995,6 +1002,12 @@ function loadReferenceLists() {
       const list = parseNatureList(text);
       state.lists.natures = list;
       populateSelect(natureSelect, list);
+    }),
+    fetchText(LANGUAGE_LIST_URL).then((text) => {
+      const list = parseTableList(text, { skipHeader: false });
+      state.lists.languages = list;
+      populateSelect(languageSelect, list);
+      ensureOption(languageSelect, DEFAULT_LANGUAGE);
     })
   ]);
 }
