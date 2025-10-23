@@ -932,7 +932,7 @@ select[data-move-select] option[data-separator='true'] {
   }
 
   .move-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .box {
@@ -954,7 +954,7 @@ select[data-move-select] option[data-separator='true'] {
   }
 
   .box-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .box-sorting select {
