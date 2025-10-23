@@ -464,6 +464,10 @@ textarea {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
 
+.move-grid .field {
+  min-width: 0;
+}
+
 .move-grid .full {
   grid-column: 1 / -1;
 }
@@ -955,6 +959,16 @@ select[data-move-select] option[data-separator='true'] {
 
   .move-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .move-grid .field span {
+    font-size: 0.75rem;
+  }
+
+  .move-grid select {
+    padding: 8px 10px;
+    font-size: 0.9rem;
   }
 
   .box {
@@ -1044,6 +1058,15 @@ select[data-move-select] option[data-separator='true'] {
   .profile-metrics .field,
   .stat-row label {
     width: 100%;
+  }
+
+  .move-grid {
+    gap: 10px;
+  }
+
+  .move-grid select {
+    font-size: 0.85rem;
+    padding: 7px 8px;
   }
 
   .modal-content {
