@@ -367,15 +367,22 @@ function composeSpread(inputs) {
   return inputs.map((input) => Number(input?.value || 0)).join('-');
 }
 
+function shouldPreserveEmptyValue(input) {
+  return document.activeElement === input && input.value.trim() === '';
+}
+
 function updateEvState(changedInput) {
   let total = 0;
   evInputs.forEach((input) => {
     if (!input) return;
+    const isEmptyAndActive = shouldPreserveEmptyValue(input);
     let value = Number.parseInt(input.value, 10);
     if (!Number.isFinite(value) || value < 0) value = 0;
     if (value > 252) value = 252;
-    input.value = value;
-    total += value;
+    if (!isEmptyAndActive) {
+      input.value = value;
+    }
+    total += isEmptyAndActive ? 0 : value;
   });
 
   if (total > 510 && changedInput) {
@@ -393,10 +400,13 @@ function updateEvState(changedInput) {
 function updateIvField() {
   ivInputs.forEach((input) => {
     if (!input) return;
+    const isEmptyAndActive = shouldPreserveEmptyValue(input);
     let value = Number.parseInt(input.value, 10);
     if (!Number.isFinite(value) || value < 0) value = 0;
     if (value > 31) value = 31;
-    input.value = value;
+    if (!isEmptyAndActive) {
+      input.value = value;
+    }
   });
   fieldIvs.value = composeSpread(ivInputs);
 }
@@ -896,6 +906,9 @@ function initStatHandlers() {
   ivInputs.forEach((input) => {
     if (!input) return;
     input.addEventListener('input', () => {
+      updateIvField();
+    });
+    input.addEventListener('blur', () => {
       updateIvField();
     });
   });
