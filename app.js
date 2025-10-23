@@ -673,7 +673,7 @@ function fillForm(pokemon) {
   ensureOption(ballSelect, pokemon?.Pre_Ball ?? '');
   ensureOption(itemSelect, pokemon?.Held_Item ?? '');
   ensureOption(natureSelect, pokemon?.Pre_Nature ?? '');
-  ensureOption(languageSelect, pokemon?.Language ?? DEFAULT_LANGUAGE);
+  ensureOption(languageSelect, pokemon?.Language || DEFAULT_LANGUAGE);
 
   const spriteKey = pokemon?.Picture || pokemon?.No?.toString() || '';
   updateSprite(spriteKey);
