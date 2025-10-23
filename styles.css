@@ -361,6 +361,8 @@ select {
   background: rgba(255, 255, 255, 0.9);
   color: var(--text-main);
   box-shadow: inset 0 1px 2px rgba(22, 50, 92, 0.08);
+  width: 100%;
+  min-width: 0;
 }
 
 input:focus,
@@ -461,7 +463,7 @@ textarea {
 .move-grid {
   display: grid;
   gap: 16px;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
 
 .move-grid .field {
@@ -958,7 +960,7 @@ select[data-move-select] option[data-separator='true'] {
   }
 
   .move-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     gap: 12px;
   }
 
@@ -1061,6 +1063,7 @@ select[data-move-select] option[data-separator='true'] {
   }
 
   .move-grid {
+    grid-template-columns: 1fr;
     gap: 10px;
   }
 
