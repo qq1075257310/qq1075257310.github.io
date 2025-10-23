@@ -238,31 +238,28 @@ h1 {
 
 .profile-body {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 220px 1fr;
   gap: 24px;
+  align-items: start;
 }
 
 .profile-media {
   display: grid;
   gap: 18px;
   align-content: start;
-}
-
-.sprite-card {
-  background: rgba(47, 123, 255, 0.06);
-  border-radius: var(--radius-md);
-  border: 1px dashed rgba(47, 123, 255, 0.35);
-  padding: 18px;
-  display: grid;
-  gap: 16px;
   justify-items: center;
 }
 
+.sprite-card {
+  display: grid;
+  justify-items: center;
+  padding: 0;
+}
+
 .sprite-frame {
-  width: 180px;
-  height: 180px;
-  border-radius: 32px;
-  border: 1px solid rgba(47, 123, 255, 0.25);
+  width: 160px;
+  height: 160px;
+  border-radius: 28px;
   background: linear-gradient(160deg, rgba(47, 123, 255, 0.18), rgba(255, 255, 255, 0.4));
   display: grid;
   place-items: center;
@@ -283,8 +280,15 @@ h1 {
 }
 
 .toggle-list {
-  display: grid;
-  gap: 10px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.profile-flags {
+  display: flex;
+  justify-content: flex-start;
+  align-self: flex-start;
 }
 
 .toggle-chip {
@@ -324,7 +328,8 @@ h1 {
 
 .profile-info {
   display: grid;
-  gap: 24px;
+  gap: 20px;
+  align-content: start;
 }
 
 .profile-names {
@@ -808,8 +813,12 @@ select[data-move-select] option[data-separator='true'] {
     align-items: start;
   }
 
+  .profile-flags {
+    justify-content: flex-start;
+  }
+
   .toggle-list {
-    justify-items: start;
+    justify-content: flex-start;
   }
 }
 
